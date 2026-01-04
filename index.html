@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון ריבית דריבית - גרסה מתקדמת</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Assistant', sans-serif;
+            background-color: #f8fafc;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .input-label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #475569;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 bg-slate-50">
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">מחשבון ריבית דריבית מתקדם</h1>
+            <p class="text-slate-500 mt-2 text-lg">תכנון פיננסי מקצועי כולל מס, אינפלציה והשוואה</p>
+        </header>
+
+        <!-- Toggle Mode -->
+        <div class="flex justify-center mb-8">
+            <div class="inline-flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                <button id="btnSingle" onclick="setMode('single')" class="px-6 py-2 rounded-lg font-bold transition-all bg-blue-600 text-white">תוכנית אחת</button>
+                <button id="btnCompare" onclick="setMode('compare')" class="px-6 py-2 rounded-lg font-bold transition-all text-slate-600 hover:bg-slate-100">השוואת תוכניות</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Settings Sidebar -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Basic Params -->
+                <div class="card p-6 border-t-4 border-blue-600">
+                    <h2 class="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
+                        <span>⚙️</span> פרמטרים בסיסיים
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="input-label">תקופת חיסכון (שנים)</label>
+                            <input type="number" id="years" value="20" class="input-field" oninput="calculate()">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="input-label">מס רווחי הון (%)</label>
+                                <input type="number" id="taxRate" value="25" class="input-field" oninput="calculate()">
+                            </div>
+                            <div>
+                                <label class="input-label">אינפלציה שנתית (%)</label>
+                                <input type="number" id="inflationRate" value="2.5" class="input-field" oninput="calculate()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plan A -->
+                <div class="card p-6 border-t-4 border-blue-500">
+                    <h2 id="titleA" class="text-lg font-bold mb-4 text-blue-600">הגדרות תוכנית א'</h2>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="input-label">הפקדה ראשונית</label>
+                                <input type="number" id="initA" value="50000" class="input-field" oninput="calculate()">
+                            </div>
+                            <div>
+                                <label class="input-label">הפקדה חודשית</label>
+                                <input type="number" id="monthlyA" value="2000" class="input-field" oninput="calculate()">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="input-label">ריבית שנתית מצופה (%)</label>
+                            <input type="number" id="interestA" value="7" step="0.1" class="input-field" oninput="calculate()">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="input-label">ד"נ צבירה (%)</label>
+                                <input type="number" id="feesAccA" value="0.5" step="0.01" class="input-field" oninput="calculate()">
+                            </div>
+                            <div>
+                                <label class="input-label">ד"נ הפקדה (%)</label>
+                                <input type="number" id="feesDepA" value="0" step="0.1" class="input-field" oninput="calculate()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plan B (Hidden by default) -->
+                <div id="planBContainer" class="card p-6 border-t-4 border-orange-500 hidden">
+                    <h2 class="text-lg font-bold mb-4 text-orange-600">הגדרות תוכנית ב'</h2>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="input-label">הפקדה ראשונית</label>
+                                <input type="number" id="initB" value="50000" class="input-field" oninput="calculate()">
+                            </div>
+                            <div>
+                                <label class="input-label">הפקדה חודשית</label>
+                                <input type="number" id="monthlyB" value="2000" class="input-field" oninput="calculate()">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="input-label">ריבית שנתית מצופה (%)</label>
+                            <input type="number" id="interestB" value="4.5" step="0.1" class="input-field" oninput="calculate()">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="input-label">ד"נ צבירה (%)</label>
+                                <input type="number" id="feesAccB" value="0.2" step="0.01" class="input-field" oninput="calculate()">
+                            </div>
+                            <div>
+                                <label class="input-label">ד"נ הפקדה (%)</label>
+                                <input type="number" id="feesDepB" value="0" step="0.1" class="input-field" oninput="calculate()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Display -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="card p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+                        <p class="text-sm opacity-80">סכום סופי ברוטו</p>
+                        <h3 class="text-2xl font-bold" id="statFinalBruto">₪0</h3>
+                    </div>
+                    <div class="card p-5 bg-white border-l-4 border-green-500">
+                        <p class="text-sm text-slate-500">סכום סופי נטו (אחרי מס)</p>
+                        <h3 class="text-2xl font-bold text-green-600" id="statFinalNeto">₪0</h3>
+                    </div>
+                    <div class="card p-5 bg-white border-l-4 border-purple-500">
+                        <p class="text-sm text-slate-500">ערך ריאלי (מתואם אינפלציה)</p>
+                        <h3 class="text-2xl font-bold text-purple-600" id="statRealValue">₪0</h3>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="card overflow-hidden">
+                    <div class="flex border-b border-slate-200 bg-slate-50">
+                        <button onclick="setTab('graph')" id="tabGraph" class="tab-btn active">📈 גרף צמיחה</button>
+                        <button onclick="setTab('table')" id="tabTable" class="tab-btn">📋 פירוט שנתי</button>
+                    </div>
+                    
+                    <div id="graphContent" class="p-6">
+                        <div class="h-80 md:h-96 w-full">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div id="tableContent" class="hidden p-6 overflow-x-auto">
+                        <table class="w-full text-sm text-right">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-2 border">שנה</th>
+                                    <th class="p-2 border">יתרה לתחילת שנה</th>
+                                    <th class="p-2 border">הפקדות שנתיות</th>
+                                    <th class="p-2 border">רווח שנתי</th>
+                                    <th class="p-2 border">דמי ניהול</th>
+                                    <th class="p-2 border">יתרה לסוף שנה</th>
+                                </tr>
+                            </thead>
+                            <tbody id="yearlyTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Detailed Summary Table -->
+                <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4 text-slate-800">סיכום נתונים משווה</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="p-2 border text-right">נתון</th>
+                                    <th class="p-2 border text-center text-blue-600">תוכנית א'</th>
+                                    <th id="compHeadB" class="p-2 border text-center text-orange-600 hidden">תוכנית ב'</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonRows">
+                                <!-- Rows dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mode = 'single'; // single or compare
+        let activeTab = 'graph';
+        let mainChart = null;
+
+        function setMode(newMode) {
+            mode = newMode;
+            const planB = document.getElementById('planBContainer');
+            const compHeadB = document.getElementById('compHeadB');
+            const btnSingle = document.getElementById('btnSingle');
+            const btnCompare = document.getElementById('btnCompare');
+
+            if (mode === 'compare') {
+                planB.classList.remove('hidden');
+                compHeadB.classList.remove('hidden');
+                btnCompare.classList.add('bg-blue-600', 'text-white');
+                btnCompare.classList.remove('text-slate-600');
+                btnSingle.classList.remove('bg-blue-600', 'text-white');
+                btnSingle.classList.add('text-slate-600');
+            } else {
+                planB.classList.add('hidden');
+                compHeadB.classList.add('hidden');
+                btnSingle.classList.add('bg-blue-600', 'text-white');
+                btnSingle.classList.remove('text-slate-600');
+                btnCompare.classList.remove('bg-blue-600', 'text-white');
+                btnCompare.classList.add('text-slate-600');
+            }
+            calculate();
+        }
+
+        function setTab(tab) {
+            activeTab = tab;
+            document.getElementById('tabGraph').classList.toggle('active', tab === 'graph');
+            document.getElementById('tabTable').classList.toggle('active', tab === 'table');
+            document.getElementById('graphContent').classList.toggle('hidden', tab !== 'graph');
+            document.getElementById('tableContent').classList.toggle('hidden', tab !== 'table');
+        }
+
+        function runProjection(init, monthly, annualInterest, annualAccFee, depFee, years) {
+            const mInterest = (annualInterest / 100) / 12;
+            const mAccFee = (annualAccFee / 100) / 12;
+            const dFeeRate = depFee / 100;
+            const months = years * 12;
+
+            let balance = init;
+            let totalDeposited = init;
+            let totalFees = 0;
+            let totalProfit = 0;
+            
+            const yearlyLog = [];
+            const graphData = [Math.round(balance)];
+
+            for (let y = 1; y <= years; y++) {
+                let startOfYear = balance;
+                let yearDeposits = 0;
+                let yearProfit = 0;
+                let yearFees = 0;
+
+                for (let m = 1; m <= 12; m++) {
+                    const netDeposit = monthly * (1 - dFeeRate);
+                    const currentDepFee = monthly * dFeeRate;
+                    yearFees += currentDepFee;
+                    yearDeposits += monthly;
+                    totalDeposited += monthly;
+
+                    const profit = (balance + netDeposit) * mInterest;
+                    yearProfit += profit;
+                    balance += netDeposit + profit;
+
+                    const accFee = balance * mAccFee;
+                    yearFees += accFee;
+                    balance -= accFee;
+                }
+
+                totalFees += yearFees;
+                totalProfit += yearProfit;
+                yearlyLog.push({
+                    year: y,
+                    start: Math.round(startOfYear),
+                    deposits: Math.round(yearDeposits),
+                    profit: Math.round(yearProfit),
+                    fees: Math.round(yearFees),
+                    end: Math.round(balance)
+                });
+                graphData.push(Math.round(balance));
+            }
+
+            return { balance, totalDeposited, totalFees, totalProfit, yearlyLog, graphData };
+        }
+
+        function calculate() {
+            const years = parseInt(document.getElementById('years').value) || 0;
+            const taxRate = (parseFloat(document.getElementById('taxRate').value) || 0) / 100;
+            const inflationRate = (parseFloat(document.getElementById('inflationRate').value) || 0) / 100;
+
+            const pA = {
+                init: parseFloat(document.getElementById('initA').value) || 0,
+                monthly: parseFloat(document.getElementById('monthlyA').value) || 0,
+                interest: parseFloat(document.getElementById('interestA').value) || 0,
+                acc: parseFloat(document.getElementById('feesAccA').value) || 0,
+                dep: parseFloat(document.getElementById('feesDepA').value) || 0
+            };
+
+            const resA = runProjection(pA.init, pA.monthly, pA.interest, pA.acc, pA.dep, years);
+            
+            // Calculate Net & Real for A
+            const netA = resA.balance - (resA.totalProfit * taxRate);
+            const realA = resA.balance / Math.pow(1 + inflationRate, years);
+
+            // Update Stats
+            document.getElementById('statFinalBruto').innerText = '₪' + Math.round(resA.balance).toLocaleString();
+            document.getElementById('statFinalNeto').innerText = '₪' + Math.round(netA).toLocaleString();
+            document.getElementById('statRealValue').innerText = '₪' + Math.round(realA).toLocaleString();
+
+            // Handle Table
+            const tableBody = document.getElementById('yearlyTableBody');
+            tableBody.innerHTML = resA.yearlyLog.map(row => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-2 border text-center font-bold">${row.year}</td>
+                    <td class="p-2 border">₪${row.start.toLocaleString()}</td>
+                    <td class="p-2 border">₪${row.deposits.toLocaleString()}</td>
+                    <td class="p-2 border text-green-600">+₪${row.profit.toLocaleString()}</td>
+                    <td class="p-2 border text-red-500">-₪${row.fees.toLocaleString()}</td>
+                    <td class="p-2 border font-semibold">₪${row.end.toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            // Graph Data
+            let datasets = [{
+                label: 'תוכנית א\'',
+                data: resA.graphData,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: mode === 'single',
+                tension: 0.3
+            }];
+
+            let resB = null;
+            if (mode === 'compare') {
+                const pB = {
+                    init: parseFloat(document.getElementById('initB').value) || 0,
+                    monthly: parseFloat(document.getElementById('monthlyB').value) || 0,
+                    interest: parseFloat(document.getElementById('interestB').value) || 0,
+                    acc: parseFloat(document.getElementById('feesAccB').value) || 0,
+                    dep: parseFloat(document.getElementById('feesDepB').value) || 0
+                };
+                resB = runProjection(pB.init, pB.monthly, pB.interest, pB.acc, pB.dep, years);
+                datasets.push({
+                    label: 'תוכנית ב\'',
+                    data: resB.graphData,
+                    borderColor: '#f97316',
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.3
+                });
+            }
+
+            updateChart(years, datasets);
+            updateComparisonTable(resA, resB, taxRate, inflationRate, years);
+        }
+
+        function updateChart(years, datasets) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const labels = Array.from({length: years + 1}, (_, i) => i === 0 ? 'התחלה' : 'שנה ' + i);
+
+            if (mainChart) mainChart.destroy();
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        tooltip: { 
+                            callbacks: { label: c => c.dataset.label + ': ₪' + c.parsed.y.toLocaleString() } 
+                        },
+                        legend: { position: 'top', rtl: true }
+                    },
+                    scales: { 
+                        y: { ticks: { callback: v => '₪' + v.toLocaleString() }, position: 'right' } 
+                    }
+                }
+            });
+        }
+
+        function updateComparisonTable(resA, resB, taxRate, inflationRate, years) {
+            const container = document.getElementById('comparisonRows');
+            const isCompare = mode === 'compare';
+            
+            const netA = resA.balance - (resA.totalProfit * taxRate);
+            const realA = resA.balance / Math.pow(1 + inflationRate, years);
+            
+            let netB = 0, realB = 0;
+            if (isCompare) {
+                netB = resB.balance - (resB.totalProfit * taxRate);
+                realB = resB.balance / Math.pow(1 + inflationRate, years);
+            }
+
+            const rows = [
+                ["סך הכל הון שהופקד", `₪${Math.round(resA.totalDeposited).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalDeposited).toLocaleString()}` : "-"],
+                ["סך רווח שנצבר (ברוטו)", `₪${Math.round(resA.totalProfit).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalProfit).toLocaleString()}` : "-"],
+                ["סך דמי ניהול ששולמו", `₪${Math.round(resA.totalFees).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalFees).toLocaleString()}` : "-"],
+                ["צפי מס רווחי הון", `₪${Math.round(resA.totalProfit * taxRate).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalProfit * taxRate).toLocaleString()}` : "-"],
+                ["סכום סופי ברוטו", `₪${Math.round(resA.balance).toLocaleString()}`, isCompare ? `₪${Math.round(resB.balance).toLocaleString()}` : "-"],
+                ["סכום סופי נטו", `₪${Math.round(netA).toLocaleString()}`, isCompare ? `₪${Math.round(netB).toLocaleString()}` : "-"],
+                ["ערך ריאלי (כוח קנייה)", `₪${Math.round(realA).toLocaleString()}`, isCompare ? `₪${Math.round(realB).toLocaleString()}` : "-"]
+            ];
+
+            container.innerHTML = rows.map(r => `
+                <tr class="border-b">
+                    <td class="p-2 border bg-slate-50 font-semibold text-right">${r[0]}</td>
+                    <td class="p-2 border text-center text-blue-700 font-bold">${r[1]}</td>
+                    ${isCompare ? `<td class="p-2 border text-center text-orange-700 font-bold">${r[2]}</td>` : `<td class="p-2 border text-center text-slate-300">-</td>`}
+                </tr>
+            `).join('');
+        }
+
+        window.onload = () => {
+            calculate();
+        };
+    </script>
+</body>
+</html>
