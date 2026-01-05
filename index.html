@@ -10,12 +10,14 @@
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap');
         body {
             font-family: 'Assistant', sans-serif;
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
         }
         .card {
             background: white;
             border-radius: 1rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.35);
+            border: 1px solid #e2e8f0;
         }
         .input-label {
             display: block;
@@ -46,11 +48,33 @@
             border-bottom-color: #2563eb;
             color: #2563eb;
         }
+        .hero {
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 50%),
+                        radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 55%),
+                        #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 24px 32px -24px rgba(15, 23, 42, 0.35);
+        }
+        .pill {
+            background: rgba(59, 130, 246, 0.1);
+            color: #1d4ed8;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 bg-slate-50">
     <div class="max-w-6xl mx-auto">
         <header class="text-center mb-8">
+        <header class="text-center mb-8 hero">
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <span class="pill">גרסה מתקדמת</span>
+                <span class="pill">השוואת תוכניות</span>
+            </div>
             <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">מחשבון ריבית דריבית מתקדם</h1>
             <p class="text-slate-500 mt-2 text-lg">תכנון פיננסי מקצועי כולל מס, אינפלציה והשוואה</p>
         </header>
@@ -58,7 +82,7 @@
         <!-- Toggle Mode -->
         <div class="flex justify-center mb-8">
             <div class="inline-flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                <button id="btnSingle" onclick="setMode('single')" class="px-6 py-2 rounded-lg font-bold transition-all bg-blue-600 text-white">תוכנית אחת</button>
+                <button id="btnSingle" onclick="setMode('single')" class="px-6 py-2 rounded-lg font-bold transition-all bg-blue-600 text-white shadow-sm">תוכנית אחת</button>
                 <button id="btnCompare" onclick="setMode('compare')" class="px-6 py-2 rounded-lg font-bold transition-all text-slate-600 hover:bg-slate-100">השוואת תוכניות</button>
             </div>
         </div>
@@ -156,8 +180,7 @@
             <div class="lg:col-span-8 space-y-6">
                 <!-- Summary Stats -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="card p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-                        <p class="text-sm opacity-80">סכום סופי ברוטו</p>
+                    <div class="card p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0">                        <p class="text-sm opacity-80">סכום סופי ברוטו</p>
                         <h3 class="text-2xl font-bold" id="statFinalBruto">₪0</h3>
                     </div>
                     <div class="card p-5 bg-white border-l-4 border-green-500">
@@ -412,12 +435,14 @@
             const container = document.getElementById('comparisonRows');
             const isCompare = mode === 'compare';
             
-            const netA = resA.balance - (resA.totalProfit * taxRate);
+            const taxableProfitA = Math.max(0, resA.balance - resA.totalDeposited);
+            const netA = resA.balance - (taxableProfitA * taxRate);
             const realA = resA.balance / Math.pow(1 + inflationRate, years);
             
-            let netB = 0, realB = 0;
+            let netB = 0, realB = 0, taxableProfitB = 0;
             if (isCompare) {
-                netB = resB.balance - (resB.totalProfit * taxRate);
+                taxableProfitB = Math.max(0, resB.balance - resB.totalDeposited);
+                netB = resB.balance - (taxableProfitB * taxRate);
                 realB = resB.balance / Math.pow(1 + inflationRate, years);
             }
 
@@ -425,7 +450,7 @@
                 ["סך הכל הון שהופקד", `₪${Math.round(resA.totalDeposited).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalDeposited).toLocaleString()}` : "-"],
                 ["סך רווח שנצבר (ברוטו)", `₪${Math.round(resA.totalProfit).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalProfit).toLocaleString()}` : "-"],
                 ["סך דמי ניהול ששולמו", `₪${Math.round(resA.totalFees).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalFees).toLocaleString()}` : "-"],
-                ["צפי מס רווחי הון", `₪${Math.round(resA.totalProfit * taxRate).toLocaleString()}`, isCompare ? `₪${Math.round(resB.totalProfit * taxRate).toLocaleString()}` : "-"],
+                ["צפי מס רווחי הון", `₪${Math.round(taxableProfitA * taxRate).toLocaleString()}`, isCompare ? `₪${Math.round(taxableProfitB * taxRate).toLocaleString()}` : "-"],
                 ["סכום סופי ברוטו", `₪${Math.round(resA.balance).toLocaleString()}`, isCompare ? `₪${Math.round(resB.balance).toLocaleString()}` : "-"],
                 ["סכום סופי נטו", `₪${Math.round(netA).toLocaleString()}`, isCompare ? `₪${Math.round(netB).toLocaleString()}` : "-"],
                 ["ערך ריאלי (כוח קנייה)", `₪${Math.round(realA).toLocaleString()}`, isCompare ? `₪${Math.round(realB).toLocaleString()}` : "-"]
